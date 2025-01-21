@@ -1,9 +1,9 @@
-﻿namespace FootballScoreBoard;
+﻿namespace FootballScoreBoard.Core;
 
 /// <summary>
 /// Represents a football game between two teams, tracking their scores and game status.
 /// </summary>
-public class Game
+public class Game : IGame
 {
     public string Id { get; }
     public string HomeTeam { get; }

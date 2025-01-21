@@ -1,192 +1,165 @@
-﻿namespace FootballScoreBoard.Tests.UnitTests;
+﻿using FootballScoreBoard.Core;
+using FootballScoreBoard.Infrastructure;
+using FootballScoreBoard.Tests.Mocks;
+using Moq;
+
+namespace FootballScoreBoard.Tests.UnitTests;
 
 public class ScoreBoardTests
 {
     [Fact]
-    public void StartGame_ShouldAddGame_WhenGameNotExists()
+    public void ScoreBoard_DefaultConstructor_ShouldUseDefaultSortingStrategyAndUseInMemoryRepository()
     {
         // Arrange
         var scoreboard = new ScoreBoard();
-        var game = new Game("Mexico", "Canada");
+        var mockGame = MockGame.Create("Mexico", "Canada");
 
         // Act
-        scoreboard.StartGame(game);
+        scoreboard.StartGame(mockGame.Object);
+        var summary = scoreboard.GetSummary();
 
         // Assert
-        var games = scoreboard.GetSummary();
-        Assert.Single(games);
-        Assert.Equal("Mexico|Canada", games[0].Id);
+        Assert.Single(summary);
+        Assert.Equal(mockGame.Object, summary[0]);
     }
 
     [Fact]
-    public void StartGame_ShouldThrowInvalidOperationException_WhenGameAlreadyExists()
+    public void Constructor_WithCustomRepository_ShouldUseDefaultSortingStrategy()
     {
         // Arrange
-        var scoreboard = new ScoreBoard();
-        var game1 = new Game("Mexico", "Canada");
-        scoreboard.StartGame(game1);
-
-        // Act 
-        var exception = Assert.Throws<InvalidOperationException>(() => scoreboard.StartGame(game1));
-
-        // Assert
-        Assert.Equal("Game already exists.", exception.Message);
-    }
-
-    [Fact]
-    public void FinishGame_ShouldRemoveGame_WhenGameExists()
-    {
-        // Arrange
-        var scoreboard = new ScoreBoard();
-        var game = new Game("Mexico", "Canada");
-        scoreboard.StartGame(game);
+        var mockRepository = new Mock<IGameRepository>();
 
         // Act
-        scoreboard.FinishGame(game);
+        var scoreboard = new ScoreBoard(mockRepository.Object);
+        var mockGame = MockGame.Create("Team1", "Team2");
+
+        scoreboard.StartGame(mockGame.Object);
 
         // Assert
-        var games = scoreboard.GetSummary();
-        Assert.Empty(games);
+        mockRepository.Verify(r => r.Add(mockGame.Object), Times.Once());
     }
 
     [Fact]
-    public void FinishGame_ShouldThrowInvalidOperationException_WhenGameNotExists()
+    public void Constructor_WithCustomSortingStrategy_ShouldUseDefaultRepository()
     {
         // Arrange
-        var scoreboard = new ScoreBoard();
-        var game = new Game("Mexico", "Canada");
-
-        // Act - Finish a game not added to the board
-        var exception = Assert.Throws<InvalidOperationException>(() => scoreboard.FinishGame(game));
-
-        // Assert
-        Assert.Equal("Game not found.", exception.Message);
-    }
-
-    [Fact]
-    public void UpdateScore_ShouldChangeScore_WhenGameExists()
-    {
-        // Arrange
-        var scoreboard = new ScoreBoard();
-        var game = new Game("Mexico", "Canada");
-        scoreboard.StartGame(game);
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
 
         // Act
-        scoreboard.UpdateScore(game, 3, 1);
+        var scoreboard = new ScoreBoard(mockSortingStrategy.Object);
+        var mockGames = new List<IGame>
+        {
+            MockGame.Create("Team1", "Team2", 3, 2, DateTime.UtcNow.AddMinutes(-10)).Object,        
+        };
+        
+        mockSortingStrategy.Setup(s => s.Sort(It.IsAny<IEnumerable<IGame>>()))
+                           .Returns(mockGames.OrderByDescending(g => g.HomeScore + g.AwayScore));
+
+        scoreboard.StartGame(mockGames[0]);
+        var summary = scoreboard.GetSummary();
 
         // Assert
-        var games = scoreboard.GetSummary();
-        Assert.Equal(3, games[0].HomeScore);
-        Assert.Equal(1, games[0].AwayScore);
+        Assert.Single(summary);
+        Assert.Equal(mockGames[0], summary[0]);
+        mockSortingStrategy.Verify(s => s.Sort(It.IsAny<IEnumerable<IGame>>()), Times.Once());
     }
 
     [Fact]
-    public void UpdateScore_ShouldThrowInvalidOperationException_WhenGameNotExists()
+    public void ScoreBoard_CustomConstructor_ShouldUseInjectedRepositoryAndSortingStrategy()
     {
         // Arrange
-        var scoreboard = new ScoreBoard();
-        var game = new Game("Mexico", "Canada");
-
-        // Act - Update a game not added to the board
-        var exception = Assert.Throws<InvalidOperationException>(() => scoreboard.UpdateScore(game, 3, 1));
-
-        // Assert
-        Assert.Equal("Game not found.", exception.Message);
-    }
-
-    [Fact]
-    public void GetSummary_ShouldReturnEmpty_WhenNoGamesAdded()
-    {
-        // Arrange
-        var scoreBoard = new ScoreBoard();
+        var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
+        var mockGame = MockGame.Create("Mexico", "Canada");
 
         // Act
-        var result = scoreBoard.GetSummary();
+        scoreboard.StartGame(mockGame.Object);
 
         // Assert
-        Assert.Empty(result);
+        mockRepository.Verify(r => r.Add(mockGame.Object), Times.Once());
     }
 
     [Fact]
-    public void GetSummary_ShouldSortByScores_WhenGamesHaveDifferentScores()
+    public void StartGame_ShouldAddGameToRepository()
     {
         // Arrange
-        var scoreBoard = new ScoreBoard();
-        var game1 = new Game("Argentina", "Australia");
-        var game2 = new Game("Mexico", "Canada");
-        var game3 = new Game("Brazil", "France");
+        var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+        var mockGame = MockGame.Create("Team1", "Team2");
 
-        scoreBoard.StartGame(game1);
-        scoreBoard.StartGame(game2);
-        scoreBoard.StartGame(game3);
-
-        game1.UpdateScore(3, 1);
-        game2.UpdateScore(2, 3);
-        game3.UpdateScore(5, 5);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
-        var result = scoreBoard.GetSummary();
+        scoreboard.StartGame(mockGame.Object);
 
         // Assert
-        Assert.Equal(game3, result[0]);
-        Assert.Equal(game2, result[1]);
-        Assert.Equal(game1, result[2]);
+        mockGame.Verify(g => g.Start(), Times.Once());
+        mockRepository.Verify(r => r.Add(mockGame.Object), Times.Once());
     }
 
     [Fact]
-    public void GetSummary_ShouldSortByStartTime_WhenScoresAreEqual()
+    public void FinishGame_ShouldRemoveGameFromRepository()
     {
         // Arrange
-        var scoreBoard = new ScoreBoard();
-        var game1 = new Game("Argentina", "Australia");
-        var game2 = new Game("Mexico", "Canada");
+        var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+        var mockGame = new Mock<IGame>();
+        mockGame.Setup(g => g.Id).Returns("Team1|Team2");
 
-        scoreBoard.StartGame(game1);
-        scoreBoard.StartGame(game2);
-
-        game1.UpdateScore(3, 3);
-        game2.UpdateScore(3, 3);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
-        var result = scoreBoard.GetSummary();
+        scoreboard.FinishGame(mockGame.Object);
 
         // Assert
-        Assert.Equal(game2, result[0]);
-        Assert.Equal(game1, result[1]);
+        mockRepository.Verify(r => r.Remove("Team1|Team2"), Times.Once());
     }
 
     [Fact]
-    public void GetSummary_ShouldSortByScoresAndStartTime()
+    public void UpdateScore_ShouldUpdateGameScoreInRepository()
     {
         // Arrange
-        var scoreBoard = new ScoreBoard();
+        var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+        var mockGame = new Mock<IGame>();
+        mockGame.Setup(g => g.Id).Returns("Team1|Team2");
+        mockRepository.Setup(r => r.GetById("Team1|Team2")).Returns(mockGame.Object);
 
-        var game1 = new Game("Mexico", "Canada");
-        var game2 = new Game("Spain", "Brazil");
-        var game3 = new Game("Germany", "France");
-        var game4 = new Game("Uruguay", "Italy");
-        var game5 = new Game("Argentina", "Australia");
-
-        scoreBoard.StartGame(game1);
-        scoreBoard.StartGame(game2);
-        scoreBoard.StartGame(game3);
-        scoreBoard.StartGame(game4);
-        scoreBoard.StartGame(game5);
-
-        game1.UpdateScore(0, 5);
-        game2.UpdateScore(10, 2);
-        game3.UpdateScore(2, 2);
-        game4.UpdateScore(6, 6);
-        game5.UpdateScore(3, 1);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
-        var result = scoreBoard.GetSummary();
+        scoreboard.UpdateScore(mockGame.Object, 3, 1);
 
         // Assert
-        Assert.Equal(game4, result[0]);
-        Assert.Equal(game2, result[1]);
-        Assert.Equal(game1, result[2]);
-        Assert.Equal(game5, result[3]);
-        Assert.Equal(game3, result[4]);
+        mockRepository.Verify(r => r.GetById("Team1|Team2"), Times.Once());
+        mockGame.Verify(g => g.UpdateScore(3, 1), Times.Once());
+    }
+
+    [Fact]
+    public void GetSummary_ShouldUseInjectedSortingStrategy()
+    {
+        // Arrange
+        var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+
+        var mockGames = new List<IGame>
+        {
+            MockGame.Create("Team1", "Team2", 3, 2, DateTime.UtcNow.AddMinutes(-10)).Object,
+            MockGame.Create("Team3", "Team4", 5, 5, DateTime.UtcNow.AddMinutes(-5)).Object
+        };
+
+        mockRepository.Setup(r => r.GetAll()).Returns(mockGames);
+        mockSortingStrategy.Setup(s => s.Sort(It.IsAny<IEnumerable<IGame>>()))
+                           .Returns(mockGames.OrderByDescending(g => g.HomeScore + g.AwayScore));
+
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
+
+        // Act
+        var summary = scoreboard.GetSummary();
+
+        // Assert
+        mockSortingStrategy.Verify(s => s.Sort(mockGames), Times.Once());
+        Assert.Equal(mockGames.OrderByDescending(g => g.HomeScore + g.AwayScore), summary);
     }
 }
