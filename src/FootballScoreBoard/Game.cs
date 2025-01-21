@@ -9,6 +9,8 @@ public class Game
     public int AwayScore { get; private set; }
     public DateTime? StartTime { get; private set; }
 
+    private static string GetGameId(string homeTeam, string awayTeam) => $"{homeTeam}|{awayTeam}";
+
     public Game(string homeTeam, string awayTeam)
     {
         if (string.IsNullOrWhiteSpace(homeTeam) || string.IsNullOrWhiteSpace(awayTeam))
@@ -23,8 +25,29 @@ public class Game
         AwayScore = 0;
     }
 
-    private static string GetGameId(string homeTeam, string awayTeam)
+    public void Start()
     {
-        return $"{homeTeam}|{awayTeam}";
+        if (StartTime is not null)
+        {
+            throw new InvalidOperationException("The game has already started");
+        }
+
+        StartTime = DateTime.UtcNow;
+    }
+
+    public void UpdateScore(int homeScore, int awayScore)
+    {
+        if (StartTime is null)
+        {
+            throw new InvalidOperationException("The game must have started to update the result");
+        }
+
+        if (homeScore < 0 || awayScore < 0)
+        {
+            throw new ArgumentException("Scores cannot be negative");
+        }
+
+        HomeScore = homeScore;
+        AwayScore = awayScore;
     }
 }

@@ -26,6 +26,70 @@ public class GameTests
         Assert.Equal("Team names cannot be empty", exception.Message);
     }
 
+    [Fact]
+    public void Game_ShouldStart_WhenNotStartedAlready()
+    {
+        // Arrange
+        var game = new Game("Mexico", "Canada");
+
+        // Act
+        game.Start();
+
+        // Assert
+        Assert.NotNull(game.StartTime);
+    }
+
+    [Fact]
+    public void Game_ShouldThrowInvalidOperationException_WhenAlreadyStarted()
+    {
+        // Arrange
+        var game = new Game("Mexico", "Canada");
+
+        // Act
+        game.Start();
+        
+        var exception = Assert.Throws<InvalidOperationException>(() => game.Start());
+        Assert.Equal("The game has already started", exception.Message);
+    }
+
+    [Fact]
+    public void Game_ShouldUpdateScore_WhenGameIsStarted()
+    {
+        // Arrange
+        var game = new Game("Mexico", "Canada");
+        game.Start();
+
+        // Act
+        game.UpdateScore(2, 1);
+
+        // Assert
+        Assert.Equal(2, game.HomeScore);
+        Assert.Equal(1, game.AwayScore);
+    }
+
+    [Fact]
+    public void Game_ShouldThrowInvalidOperationException_WhenGameIsNotStarted()
+    {
+        // Arrange
+        var game = new Game("Mexico", "Canada");
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => game.UpdateScore(2, 1));
+        Assert.Equal("The game must have started to update the result", exception.Message);
+    }
+
+    [Fact]
+    public void Game_ShouldThrowArgumentException_WhenScoresAreNegative()
+    {
+        // Arrange
+        var game = new Game("Mexico", "Canada");
+        game.Start();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => game.UpdateScore(-1, 2));
+        Assert.Equal("Scores cannot be negative", exception.Message);
+    }
+
     public static IEnumerable<object[]> InvalidTeamNames()
     {
         string[] invalidTeamNames = [null, string.Empty, " ", "  ", "\n", "\t"];
