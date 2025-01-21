@@ -3,9 +3,9 @@
 /// <summary>
 /// Manages a collection of football games, allowing tracking of game status and scores.
 /// </summary>
-public class ScoreBoard
+public class ScoreBoard : IScoreBoard
 {
-    private readonly Dictionary<string, Game> _games = [];
+    private readonly Dictionary<string, IGame> _games = [];
 
     /// <summary>
     /// Starts a new game and adds it to the scoreboard.
@@ -13,7 +13,7 @@ public class ScoreBoard
     /// <param name="game">The game to start.</param>
     /// <exception cref="InvalidOperationException">Thrown if the game already exists on the scoreboard.</exception>
 
-    public void StartGame(Game game)
+    public void StartGame(IGame game)
     {
         if (_games.ContainsKey(game.Id))
         {
@@ -29,7 +29,7 @@ public class ScoreBoard
     /// </summary>
     /// <param name="game">The game to finish and remove.</param>
     /// <exception cref="InvalidOperationException">Thrown if the game is not found on the scoreboard.</exception>
-    public void FinishGame(Game game)
+    public void FinishGame(IGame game)
     {
         if (!_games.ContainsKey(game.Id))
         {
@@ -46,7 +46,7 @@ public class ScoreBoard
     /// <param name="homeScore">The new score for the home team.</param>
     /// <param name="awayScore">The new score for the away team.</param>
     /// <exception cref="InvalidOperationException">Thrown if the game is not found on the scoreboard.</exception>
-    public void UpdateScore(Game game, int homeScore, int awayScore)
+    public void UpdateScore(IGame game, int homeScore, int awayScore)
     {
         if (!_games.ContainsKey(game.Id))
         {
@@ -60,11 +60,11 @@ public class ScoreBoard
     /// Retrieves a summary of all ongoing games, sorted by total score and start time.
     /// </summary>
     /// <returns>A list of games ordered by total score (descending) and start time (most recent first).</returns>
-    public List<Game> GetSummary()
+    public List<IGame> GetSummary()
     {
         return _games.Values
-            .OrderByDescending(g => g.HomeScore + g.AwayScore) 
-            .ThenByDescending(g => g.StartTime) 
-            .ToList(); 
+            .OrderByDescending(g => g.HomeScore + g.AwayScore)
+            .ThenByDescending(g => g.StartTime)
+            .ToList();
     }
 }
