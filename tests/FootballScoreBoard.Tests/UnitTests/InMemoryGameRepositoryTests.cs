@@ -6,6 +6,17 @@ namespace FootballScoreBoard.Tests.UnitTests;
 public class InMemoryGameRepositoryTests
 {
     [Fact]
+    public void Add_ShouldThrowArgumentNullException_WhenGameIsNull()
+    {
+        // Arrange
+        var repository = new InMemoryGameRepository();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() => repository.Add(null!));
+        Assert.Equal("game", exception.ParamName);
+    }
+
+    [Fact]
     public void Add_ShouldAddGameToRepository()
     {
         // Arrange

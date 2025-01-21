@@ -8,7 +8,7 @@ namespace FootballScoreBoard.Tests.UnitTests;
 public class ScoreBoardTests
 {
     [Fact]
-    public void ScoreBoard_DefaultConstructor_ShouldUseInMemoryRepository()
+    public void ScoreBoard_DefaultConstructor_ShouldUseDefaultSortingStrategyAndUseInMemoryRepository()
     {
         // Arrange
         var scoreboard = new ScoreBoard();
@@ -24,13 +24,54 @@ public class ScoreBoardTests
     }
 
     [Fact]
-    public void ScoreBoard_CustomConstructor_ShouldUseInjectedRepository()
+    public void Constructor_WithCustomRepository_ShouldUseDefaultSortingStrategy()
     {
         // Arrange
         var mockRepository = new Mock<IGameRepository>();
+
+        // Act
         var scoreboard = new ScoreBoard(mockRepository.Object);
-        var mockGame = new Mock<IGame>();
-        mockGame.Setup(g => g.Id).Returns("Team1|Team2");
+        var mockGame = MockGame.Create("Team1", "Team2");
+
+        scoreboard.StartGame(mockGame.Object);
+
+        // Assert
+        mockRepository.Verify(r => r.Add(mockGame.Object), Times.Once());
+    }
+
+    [Fact]
+    public void Constructor_WithCustomSortingStrategy_ShouldUseDefaultRepository()
+    {
+        // Arrange
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+
+        // Act
+        var scoreboard = new ScoreBoard(mockSortingStrategy.Object);
+        var mockGames = new List<IGame>
+        {
+            MockGame.Create("Team1", "Team2", 3, 2, DateTime.UtcNow.AddMinutes(-10)).Object,        
+        };
+        
+        mockSortingStrategy.Setup(s => s.Sort(It.IsAny<IEnumerable<IGame>>()))
+                           .Returns(mockGames.OrderByDescending(g => g.HomeScore + g.AwayScore));
+
+        scoreboard.StartGame(mockGames[0]);
+        var summary = scoreboard.GetSummary();
+
+        // Assert
+        Assert.Single(summary);
+        Assert.Equal(mockGames[0], summary[0]);
+        mockSortingStrategy.Verify(s => s.Sort(It.IsAny<IEnumerable<IGame>>()), Times.Once());
+    }
+
+    [Fact]
+    public void ScoreBoard_CustomConstructor_ShouldUseInjectedRepositoryAndSortingStrategy()
+    {
+        // Arrange
+        var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
+        var mockGame = MockGame.Create("Mexico", "Canada");
 
         // Act
         scoreboard.StartGame(mockGame.Object);
@@ -44,10 +85,10 @@ public class ScoreBoardTests
     {
         // Arrange
         var mockRepository = new Mock<IGameRepository>();
-        var mockGame = new Mock<IGame>();
-        mockGame.Setup(g => g.Id).Returns("Team1|Team2");
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
+        var mockGame = MockGame.Create("Team1", "Team2");
 
-        var scoreboard = new ScoreBoard(mockRepository.Object);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
         scoreboard.StartGame(mockGame.Object);
@@ -62,10 +103,11 @@ public class ScoreBoardTests
     {
         // Arrange
         var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
         var mockGame = new Mock<IGame>();
         mockGame.Setup(g => g.Id).Returns("Team1|Team2");
 
-        var scoreboard = new ScoreBoard(mockRepository.Object);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
         scoreboard.FinishGame(mockGame.Object);
@@ -79,11 +121,12 @@ public class ScoreBoardTests
     {
         // Arrange
         var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
         var mockGame = new Mock<IGame>();
         mockGame.Setup(g => g.Id).Returns("Team1|Team2");
         mockRepository.Setup(r => r.GetById("Team1|Team2")).Returns(mockGame.Object);
 
-        var scoreboard = new ScoreBoard(mockRepository.Object);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
         scoreboard.UpdateScore(mockGame.Object, 3, 1);
@@ -94,41 +137,29 @@ public class ScoreBoardTests
     }
 
     [Fact]
-    public void GetSummary_ShouldReturnGamesSortedByTotalScoreAndStartTime()
+    public void GetSummary_ShouldUseInjectedSortingStrategy()
     {
         // Arrange
         var mockRepository = new Mock<IGameRepository>();
+        var mockSortingStrategy = new Mock<IGameSortingStrategy>();
 
-        // Mock games with specific scores and start times
-        var mockGame1 = new Mock<IGame>();
-        mockGame1.Setup(g => g.Id).Returns("Team1|Team2");
-        mockGame1.Setup(g => g.HomeScore).Returns(3);
-        mockGame1.Setup(g => g.AwayScore).Returns(2);
-        mockGame1.Setup(g => g.StartTime).Returns(DateTime.UtcNow.AddMinutes(-10));
+        var mockGames = new List<IGame>
+        {
+            MockGame.Create("Team1", "Team2", 3, 2, DateTime.UtcNow.AddMinutes(-10)).Object,
+            MockGame.Create("Team3", "Team4", 5, 5, DateTime.UtcNow.AddMinutes(-5)).Object
+        };
 
-        var mockGame2 = new Mock<IGame>();
-        mockGame2.Setup(g => g.Id).Returns("Team3|Team4");
-        mockGame2.Setup(g => g.HomeScore).Returns(5);
-        mockGame2.Setup(g => g.AwayScore).Returns(5);
-        mockGame2.Setup(g => g.StartTime).Returns(DateTime.UtcNow.AddMinutes(-5));
+        mockRepository.Setup(r => r.GetAll()).Returns(mockGames);
+        mockSortingStrategy.Setup(s => s.Sort(It.IsAny<IEnumerable<IGame>>()))
+                           .Returns(mockGames.OrderByDescending(g => g.HomeScore + g.AwayScore));
 
-        var mockGame3 = new Mock<IGame>();
-        mockGame3.Setup(g => g.Id).Returns("Team5|Team6");
-        mockGame3.Setup(g => g.HomeScore).Returns(3);
-        mockGame3.Setup(g => g.AwayScore).Returns(2);
-        mockGame3.Setup(g => g.StartTime).Returns(DateTime.UtcNow.AddMinutes(-15));
-
-        // Return the mocked games from the repository
-        mockRepository.Setup(r => r.GetAll()).Returns([mockGame1.Object, mockGame2.Object, mockGame3.Object]);
-
-        var scoreboard = new ScoreBoard(mockRepository.Object);
+        var scoreboard = new ScoreBoard(mockRepository.Object, mockSortingStrategy.Object);
 
         // Act
-        var result = scoreboard.GetSummary();
+        var summary = scoreboard.GetSummary();
 
         // Assert
-        Assert.Equal(mockGame2.Object, result[0]); // Highest total score: 5 + 5 = 10
-        Assert.Equal(mockGame1.Object, result[1]); // Same total score as Game3, but later start time
-        Assert.Equal(mockGame3.Object, result[2]); // Same total score as Game1, but earlier start time
+        mockSortingStrategy.Verify(s => s.Sort(mockGames), Times.Once());
+        Assert.Equal(mockGames.OrderByDescending(g => g.HomeScore + g.AwayScore), summary);
     }
 }

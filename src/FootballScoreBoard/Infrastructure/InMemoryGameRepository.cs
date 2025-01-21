@@ -8,6 +8,11 @@ internal class InMemoryGameRepository : IGameRepository
 
     public void Add(IGame game)
     {
+        if (game == null)
+        {
+            throw new ArgumentNullException(nameof(game), "Game cannot be null.");
+        }
+
         if (_games.ContainsKey(game.Id))
         {
             throw new InvalidOperationException("Game already exists.");
