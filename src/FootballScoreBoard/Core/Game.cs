@@ -1,4 +1,4 @@
-﻿namespace FootballScoreBoard;
+﻿namespace FootballScoreBoard.Core;
 
 /// <summary>
 /// Represents a football game between two teams, tracking their scores and game status.

@@ -1,4 +1,4 @@
-﻿namespace FootballScoreBoard;
+﻿namespace FootballScoreBoard.Core;
 
 public interface IScoreBoard
 {

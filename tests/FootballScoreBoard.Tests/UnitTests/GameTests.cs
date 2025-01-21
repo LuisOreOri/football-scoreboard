@@ -1,4 +1,6 @@
-﻿namespace FootballScoreBoard.Tests.UnitTests;
+﻿using FootballScoreBoard.Core;
+
+namespace FootballScoreBoard.Tests.UnitTests;
 
 public class GameTests
 {
@@ -47,7 +49,7 @@ public class GameTests
 
         // Act
         game.Start();
-        
+
         var exception = Assert.Throws<InvalidOperationException>(() => game.Start());
         Assert.Equal("The game has already started", exception.Message);
     }
