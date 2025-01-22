@@ -36,7 +36,7 @@ is available in the `v1.0.0` tag. The current version enhances the design by:
    git clone https://github.com/LuisOreOri/football-scoreboard.git
    ```
    *To use the MVP version (v1.0.0), checkout the corresponding tag:* 
-    ```
+    ```sh
     git checkout tags/v1.0.0
     ```
 1. Open the `FootballScoreBoard.sln` solution in **Visual Studio 2022**.
@@ -52,34 +52,34 @@ Here are the available options:
 
 #### Default Constructor:
 
-- **Description:** Uses `InMemoryGameRepository` for in-memory storage and DefaultGameSortingStrategy for sorting.
+- **Description:** Uses `InMemoryGameRepository` for in-memory storage and `DefaultGameSortingStrategy` for sorting.
 - **Example:** 
-```
+```csharp
 var scoreboard = new ScoreBoard();
 ``` 
 
 #### Custom Repository Constructor:
 
-- **Description:** Allows you to provide a custom implementation of IGameRepository. The default sorting strategy (DefaultGameSortingStrategy) is used.
-``` 
+- **Description:** Allows you to provide a custom implementation of `IGameRepository`. The default sorting strategy (`DefaultGameSortingStrategy`) is used.
+``` csharp
 var customRepository = new CustomGameRepository(); // Implement your own repository
 var scoreboard = new ScoreBoard(customRepository);
 ``` 
 
 #### Custom Sorting Strategy Constructor:
 
-- **Description:** Allows you to provide a custom implementation of IGameSortingStrategy. The default repository (InMemoryGameRepository) is used.
+- **Description:** Allows you to provide a custom implementation of `IGameSortingStrategy`. The default repository (`InMemoryGameRepository`) is used.
 - **Example:**
-```
+```csharp
 var customSortingStrategy = new CustomSortingStrategy(); // Implement your own sorting logic
 var scoreboard = new ScoreBoard(customSortingStrategy);
 ```
 
 #### Fully Custom Constructor:
 
-- **Description:** Allows you to provide both a custom IGameRepository and a custom IGameSortingStrategy for maximum flexibility.
+- **Description:** Allows you to provide both a custom `IGameRepository` and a custom `IGameSortingStrategy` for maximum flexibility.
 - **Example:**
-```
+```csharp
 var customRepository = new CustomGameRepository();
 var customSortingStrategy = new CustomSortingStrategy();
 var scoreboard = new ScoreBoard(customRepository, customSortingStrategy);
@@ -89,7 +89,7 @@ var scoreboard = new ScoreBoard(customRepository, customSortingStrategy);
 ### Starting a Game
 To start a game, create an instance of the `ScoreBoard` class and call `StartGame`:
 
-```
+```csharp
 var scoreboard = new ScoreBoard();
 var game = new Game("Team A", "Team B");
 scoreboard.StartGame(game);
@@ -98,14 +98,14 @@ scoreboard.StartGame(game);
 ### Updating Scores
 Update the scores for an ongoing game:
 
-```
+```csharp
 scoreboard.UpdateScore(game, 3, 2); // Team A: 3, Team B: 2
 ```
 
 ### Retrieving Game Summaries
 Get a sorted summary of games:
 
-```
+```csharp
 var summary = scoreboard.GetSummary();
 foreach (var game in summary)
 {
@@ -117,7 +117,7 @@ foreach (var game in summary)
 
 ### Finishing a Game
 Remove a game from the scoreboard:
-```
+```csharp
 scoreboard.FinishGame(game);
 ```
 
@@ -127,15 +127,15 @@ scoreboard.FinishGame(game);
 The project includes a comprehensive set of tests:
   
 1. **Unit Tests:** 
-    - Validates individual components like `Game`, `InMemoryGameRepository`, and `DefaultGameSortingStrategy`.
+    - Validates individual components: `Game`, `ScoreBoard`, `InMemoryGameRepository`, and `DefaultGameSortingStrategy`.
 1. **Integration Tests:**
-    - Ensures interaction between components, such as ScoreBoard and InMemoryGameRepository.
+    - Ensures interaction between components, such as `ScoreBoard` and `InMemoryGameRepository`.
 1. **Functional Tests:** 
     - Simulates real-world scenarios, like retrieving game summaries.
 
 Run all tests using the following command:
 
-```
+```sh
 dotnet test
 ```
 
@@ -184,7 +184,7 @@ dotnet test
 ---
 
 ## 📂 File Structure
-```
+```sh
 src/
 │── FootballScoreBoard/
 │   ├── Core/               # Core interfaces and business logic (IGame, IScoreBoard, Game, ScoreBoard)
@@ -231,7 +231,7 @@ Integration
 
 ### Package Distribution:
 
-Prepare the library for distribution as a **NuGet package**, including proper versioning, metadata, and automated builds.
+- Prepare the library for distribution as a **NuGet package**, including proper versioning, metadata, and automated builds.
 
 
 ---
